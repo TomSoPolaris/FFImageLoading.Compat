@@ -32,7 +32,9 @@ namespace FFImageLoading.Maui
 
 			mauiAppBuilder.ConfigureMauiHandlers(c =>
 			{
+				#if IOS || MACCATALYST || ANDROID || TIZEN || WINDOWS
 				c.AddHandler(typeof(FFImageLoading.Maui.CachedImage), typeof(FFImageLoading.Maui.Platform.CachedImageHandler));
+				#endif
 			});
 			//.ConfigureImageSources(imageSourceServices =>
 			//{
