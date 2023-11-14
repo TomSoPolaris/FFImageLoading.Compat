@@ -69,14 +69,27 @@ namespace FFImageLoading.Maui
 
 		internal IMauiContext FindMauiContext()
 		{
-			if (Handler?.MauiContext != null)
-				return Handler.MauiContext;
+			// 11/14/23: This causes the method to return null right away and not evaluate the other if blocks below.
+			//if (Handler?.MauiContext != null) 
+			//	return Handler.MauiContext;
 
-			if (Window?.Handler?.MauiContext is not null)
-				return Window.Handler.MauiContext;
+			if (Handler != null)
+				if (Handler.MauiContext != null)
+					return Handler.MauiContext;
 
-			if (Application.Current?.Handler?.MauiContext is not null)
-				return Application.Current.Handler.MauiContext;
+			// 11/14/23: This causes the method to return null right away and not evaluate the other if blocks below.
+			//if (Window?.Handler?.MauiContext is not null)
+			//	return Window.Handler.MauiContext;
+
+			if (Window != null)
+				if (Window.Handler != null)
+					if (Window.Handler.MauiContext is not null)
+						return Window.Handler.MauiContext;
+
+			if (Application.Current != null)
+				if (Application.Current.Handler != null)
+					if (Application.Current.Handler.MauiContext is not null)
+						return Application.Current.Handler.MauiContext;
 
 			return null;
 		}
@@ -843,27 +856,49 @@ namespace FFImageLoading.Maui
 		{
 			if (source.ImageSource == Work.ImageSource.Url)
 			{
-				imageLoader = ImageService.LoadUrl(source.Path, CacheDuration);
+				// 11/14/23: This workaround was added to address a null reference runtime exception that crashed the app on Android each time it tried to render a page that contains a CachedImage.
+          		// The issue was caused by ImageService being null. The service locator used in this library relies on getting an instance of MauiContext, and for some reason that doesn't work on
+          		// Android when the the library is used in a MAUI multi-project solution; Portable + Android head project. It works fine in a MAUI single-project solution.
+				if (ImageService is not null)
+					imageLoader = ImageService.LoadUrl(source.Path, CacheDuration);
+				else
+					// This works. ImageServiceBase.LoadUrl() calls TaskParameter.FromUrl anyway, so just do it here instead.
+					imageLoader = Work.TaskParameter.FromUrl(source.Path, CacheDuration);
 			}
 			else if (source.ImageSource == Work.ImageSource.CompiledResource)
 			{
-				imageLoader = ImageService.LoadCompiledResource(source.Path);
+				if (ImageService is not null)
+					imageLoader = ImageService.LoadCompiledResource(source.Path);
+				else
+					imageLoader = Work.TaskParameter.FromCompiledResource(source.Path);
 			}
 			else if (source.ImageSource == Work.ImageSource.ApplicationBundle)
 			{
-				imageLoader = ImageService.LoadFileFromApplicationBundle(source.Path);
+				if (ImageService is not null)
+					imageLoader = ImageService.LoadFileFromApplicationBundle(source.Path);
+				else
+					imageLoader = Work.TaskParameter.FromApplicationBundle(source.Path);
 			}
 			else if (source.ImageSource == Work.ImageSource.Filepath)
 			{
-				imageLoader = ImageService.LoadFile(source.Path);
+				if (ImageService is not null)
+					imageLoader = ImageService.LoadFile(source.Path);
+				else
+					imageLoader = Work.TaskParameter.FromFile(source.Path);
 			}
 			else if (source.ImageSource == Work.ImageSource.Stream)
 			{
-				imageLoader = ImageService.LoadStream(source.Stream);
+				if (ImageService is not null)
+					imageLoader = ImageService.LoadStream(source.Stream);
+				else
+					imageLoader = Work.TaskParameter.FromStream(source.Stream);
 			}
 			else if (source.ImageSource == Work.ImageSource.EmbeddedResource)
 			{
-				imageLoader = ImageService.LoadEmbeddedResource(source.Path);
+				if (ImageService is not null)
+					imageLoader = ImageService.LoadEmbeddedResource(source.Path);
+				else
+					imageLoader = Work.TaskParameter.FromEmbeddedResource(source.Path);
 			}
 			else
 			{
